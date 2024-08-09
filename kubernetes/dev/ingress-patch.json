@@ -1,0 +1,13 @@
+[
+    {
+      "op": "replace",
+      "path": "/spec/rules/0/host",
+      "value": "backend.dev50.rolldupapp.com"
+    },
+    {
+      "op": "replace",
+      "path": "/spec/tls/0/hosts/0",
+      "value": "backend.dev50.rolldupapp.com"
+    }
+  ]
+  

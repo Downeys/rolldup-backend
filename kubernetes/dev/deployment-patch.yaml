@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    spec:
+      serviceAccountName: backend-dev50-rolldupapp-com
+      containers:
+      - name: backend
+        env:
+        - name: CORS_ALLOWED_ORIGIN
+          value: http://localhost:3000,http://localhost:3001,https://app.dev50.rolldupapp.com,https://admin-console.internal.dev50.rolldupapp.com
+        - name: PG_HOST
+          value: b2c-0-dev50rolldupappcom.postgres.database.azure.com
+        - name: KEY_VAULT_NAME
+          value: backend-dev50
+        - name: PHOTO_CONTENT_URL
+          value: https://backenddev50.blob.core.windows.net/photos/
+        - name: PROFILE_PIC_URL
+          value: https://backenddev50.blob.core.windows.net/profiles/
+        - name: COOKIE_DOMAIN
+          value: dev50.rolldupapp.com
+        - name: AUTH_TOKEN_URL
+          value: https://dev50rolldupappcom.b2clogin.com/dev50rolldupappcom.onmicrosoft.com/B2C_1A_SIGNUP_SIGNIN/oauth2/v2.0/token
+        - name: JWKS_URI
+          value: https://dev50rolldupappcom.b2clogin.com/dev50rolldupappcom.onmicrosoft.com/B2C_1A_SIGNUP_SIGNIN/discovery/v2.0/keys
+        - name: TOKEN_ISSUER
+          value: https://dev50rolldupappcom.b2clogin.com/4b8fd093-220e-481d-a813-c2d92dc44e6b/v2.0/
+        - name: TOKEN_AUDIENCE
+          value: ae43b5e0-1bcd-48ad-ab91-8a9f58712ade
+        - name: COMPUTER_VISION_ENDPOINT
+          value: https://dev50-rolldupapp-com-cv.cognitiveservices.azure.com/

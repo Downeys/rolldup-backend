@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-sdk: "true"
+      labels:
+        app: backend
+        azure.workload.identity/use: "true"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - backend
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: backend
+        image: backend:IMAGE_PLACEHOLDER
+        env:
+        - name: BOOTSTRAP_SERVER
+          value: streaming-backbone-kafka-bootstrap.application.svc:9092
+        - name: SECURE_COOKIES
+          value: "true"
+        - name: PG_DATABASE
+          value: backend
+        - name: PG_USERNAME
+          value: backend_application
+        - name: SSL_MODE
+          value: "true"
+        - name: NODE_HOSTNAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        ports:
+        - containerPort: 8080
+          name: http
+        livenessProbe:
+          httpGet:
+            path: "/healthcheck"
+            port: "http"
+          periodSeconds: 4
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: "/healthcheck"
+            port: "http"
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sleep", "90"]
+      terminationGracePeriodSeconds: 101

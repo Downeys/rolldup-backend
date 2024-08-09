@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    spec:
+      serviceAccountName: backend-prd30-rolldupapp-com
+      containers:
+      - name: backend
+        env:
+        - name: CORS_ALLOWED_ORIGIN
+          value: https://rolldupapp.com,https://admin-console.internal.prd30.rolldupapp.com
+        - name: PG_HOST
+          value: b2c-0-prd30rolldupappcom.postgres.database.azure.com
+        - name: KEY_VAULT_NAME
+          value: backend-prd30
+        - name: PHOTO_CONTENT_URL
+          value: https://backendprd30.blob.core.windows.net/photos/
+        - name: PROFILE_PIC_URL
+          value: https://backendprd30.blob.core.windows.net/profiles/
+        - name: COOKIE_DOMAIN
+          value: prd30.rolldupapp.com
+        - name: AUTH_TOKEN_URL
+          value: https://prd30rolldupappcom.b2clogin.com/prd30rolldupappcom.onmicrosoft.com/B2C_1A_SIGNUP_SIGNIN/oauth2/v2.0/token
+        - name: JWKS_URI
+          value: https://prd30rolldupappcom.b2clogin.com/prd30rolldupappcom.onmicrosoft.com/B2C_1A_SIGNUP_SIGNIN/discovery/v2.0/keys
+        - name: TOKEN_ISSUER
+          value: https://prd30rolldupappcom.b2clogin.com/30c36bf0-ce83-4a78-ae4b-dca7fefefb77/v2.0/
+        - name: TOKEN_AUDIENCE
+          value: 0c6a6f8b-f219-4c15-89fe-58917db98f66
+        - name: COMPUTER_VISION_ENDPOINT
+          value: https://prd30-rolldupapp-com-cv.cognitiveservices.azure.com/

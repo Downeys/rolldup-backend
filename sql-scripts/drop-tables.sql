@@ -1,0 +1,13 @@
+drop table user_feedback;
+drop table help_requests;
+drop table reported_content;
+drop table notifications;
+drop table bookmark_logs;
+drop table favorite_logs;
+drop table relationships;
+drop table strain_log_comments;
+drop table strain_logs;
+drop table strains;
+drop table user_endorsements;
+drop table user_settings;
+drop table users;

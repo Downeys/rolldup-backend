@@ -1,0 +1,107 @@
+trigger:
+- main
+
+resources:
+- repo: self
+
+variables:
+  dockerRegistryServiceConnection: '1d83ecf8-864d-44d9-8e40-e59ca9833bf1'
+  prodDockerRegistryServiceConnection: '4dee9760-1f15-4c4d-848e-c5cbd2a01238'
+  imageRepository: 'backend'
+  containerRegistry: 'dev50rolldupappcom.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
+  vmImageName: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: Build & Push
+  jobs:
+  - job: Build
+    displayName: Build & Push
+    pool:
+      name: dev50
+    steps:
+    - task: Docker@2
+      displayName: Build & Push
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+
+- stage: DeployDev
+  displayName: Deploy to dev
+  dependsOn: Build
+  jobs:
+  - deployment: dev
+    displayName: Deploy to dev
+    pool:
+      name: dev50
+    environment: dev
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+            - script: |
+                set -e
+                kustomize edit set image backend=${CONTAINERREGISTRY}/${IMAGEREPOSITORY}:${TAG}
+                kustomize edit add annotation "build.repository.uri:${BUILD_REPOSITORY_URI}"
+                kustomize edit add annotation "build.sourcebranch:${BUILD_SOURCEBRANCH}"
+                kustomize edit add annotation "build.requestedfor:${BUILD_REQUESTEDFOR}"
+                kustomize build . -o baked.yaml
+              workingDirectory: ./kubernetes/dev
+            - task: PublishPipelineArtifact@1
+              inputs:
+                artifactName: 'dev-manifests'
+                path: './kubernetes/dev/baked.yaml'
+            - script: |
+                kubectl apply -f ./kubernetes/dev/baked.yaml
+                kubectl -napplication rollout status deploy/backend
+  
+- stage: DeployPrd
+  displayName: Deploy to prd
+  dependsOn: DeployDev
+  jobs:  
+  - deployment: prd
+    displayName: Deploy to prd
+    pool:
+      name: prd30
+    environment: prd
+    strategy: 
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+            - task: Docker@2
+              displayName: Login to Dev ACR
+              inputs:
+                command: login
+                containerRegistry: $(dockerRegistryServiceConnection)
+            - task: Docker@2
+              displayName: Login to Prd ACR
+              inputs:
+                command: login
+                containerRegistry: $(prodDockerRegistryServiceConnection)
+            - script: |
+                set -e
+                skopeo copy docker://${CONTAINERREGISTRY}/${IMAGEREPOSITORY}:${TAG} docker://prd30rolldupappcom.azurecr.io/${IMAGEREPOSITORY}:${TAG}
+            - script: |
+                set -e
+                kustomize edit set image backend=prd30rolldupappcom.azurecr.io/${IMAGEREPOSITORY}:${TAG}
+                kustomize edit add annotation "build.repository.uri:${BUILD_REPOSITORY_URI}"
+                kustomize edit add annotation "build.sourcebranch:${BUILD_SOURCEBRANCH}"
+                kustomize edit add annotation "build.requestedfor:${BUILD_REQUESTEDFOR}"
+                kustomize build . -o baked.yaml
+              workingDirectory: ./kubernetes/prd
+            - task: PublishPipelineArtifact@1
+              inputs:
+                artifactName: 'prd-manifests'
+                path: './kubernetes/prd/baked.yaml'
+            - script: |
+                set -e
+                kubectl apply -f ./kubernetes/prd/baked.yaml
+                kubectl -napplication rollout status deploy/backend
